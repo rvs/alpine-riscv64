@@ -128,7 +128,7 @@ index 8f305a4eaf..641237041f 100755
  	${SUDO_APK} add --quiet --initdb --arch $TARGET_ARCH --root $CBUILDROOT
  fi
  
-@@ -88,11 +88,12 @@ CTARGET=$TARGET_ARCH BOOTSTRAP=nobase APKBUILD=$(apkbuildname gcc) abuild -r
+@@ -88,6 +88,7 @@ CTARGET=$TARGET_ARCH BOOTSTRAP=nobase APKBUILD=$(apkbuildname gcc) abuild -r
  
  # Cross build-base
  CTARGET=$TARGET_ARCH BOOTSTRAP=nobase APKBUILD=$(apkbuildname build-base) abuild -r
@@ -136,12 +136,7 @@ index 8f305a4eaf..641237041f 100755
  
  msg "Cross building base system"
  
- # Implicit dependencies for early targets
- EXTRADEPENDS_TARGET="libgcc libstdc++ musl-dev"
- 
- # ordered cross-build
- for PKG in fortify-headers linux-headers musl libc-dev pkgconf zlib \
-@@ -96,9 +96,10 @@ EXTRADEPENDS_TARGET="libgcc libstdc++ musl-dev"
+@@ -96,9 +97,10 @@ EXTRADEPENDS_TARGET="libgcc libstdc++ musl-dev"
  
  # ordered cross-build
  for PKG in fortify-headers linux-headers musl libc-dev pkgconf zlib \
@@ -154,8 +149,12 @@ index 8f305a4eaf..641237041f 100755
  	   openrc alpine-conf alpine-baselayout alpine-keys alpine-base patch build-base \
  	   attr libcap acl fakeroot tar \
  	   lzip abuild ncurses libedit openssh \
-@@ -110,7 +111,8 @@ for PKG in fortify-headers linux-headers musl libc-dev pkgconf zlib \
- 	   libxml2 llvm10 community/rust \
+@@ -107,10 +109,11 @@ for PKG in fortify-headers linux-headers musl libc-dev pkgconf zlib \
+ 	   community/go libffi community/ghc \
+ 	   brotli libev c-ares cunit nghttp2 curl \
+ 	   pcre libssh2 community/http-parser community/libgit2 \
+-	   libxml2 llvm10 community/rust \
++	   libxml2 llvm11 community/rust \
  	   $KERNEL_PKG ; do
  
 -	EXTRADEPENDS_TARGET="$EXTRADEPENDS_TARGET" \
@@ -164,7 +163,7 @@ index 8f305a4eaf..641237041f 100755
  	CHOST=$TARGET_ARCH BOOTSTRAP=bootimage APKBUILD=$(apkbuildname $PKG) abuild -r
  
  	case "$PKG" in
-@@ -118,6 +119,11 @@ for PKG in fortify-headers linux-headers musl libc-dev pkgconf zlib \
+@@ -118,6 +121,11 @@ for PKG in fortify-headers linux-headers musl libc-dev pkgconf zlib \
  		# Additional implicit dependencies once built
  		EXTRADEPENDS_TARGET="$EXTRADEPENDS_TARGET $PKG"
  		;;
