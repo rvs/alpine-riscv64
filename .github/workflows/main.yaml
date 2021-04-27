@@ -35,7 +35,6 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{env.IMAGE_NAME}}:${{github.sha}}
-            ${{env.IMAGE_NAME}}:0.0.${{github.run_number}}
-            ${{env.IMAGE_NAME}}:snapshot
-
+            ghcr.io/${{env.IMAGE_NAME}}:${{github.sha}}
+            ghcr.io/${{env.IMAGE_NAME}}:0.0.${{github.run_number}}
+            ghcr.io/${{env.IMAGE_NAME}}:snapshot
