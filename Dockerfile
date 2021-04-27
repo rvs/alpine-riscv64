@@ -31,4 +31,4 @@ RUN busybox su builder -c 'cd /aports && sh -x ./scripts/bootstrap.sh riscv64 55
 RUN busybox su builder -c 'cd /aports && sh -x ./scripts/bootstrap.sh riscv64 60'
 RUN busybox su builder -c 'cd /aports && sh -x ./scripts/bootstrap.sh riscv64 65'
 RUN busybox su builder -c 'cd /aports && sh -x ./scripts/bootstrap.sh riscv64 70'
-RUN busybox su builder -c 'cd /aports && sh -x ./scripts/bootstrap.sh riscv64 75'
+RUN busybox su builder -c 'cd /aports && sh -x ./scripts/bootstrap.sh riscv64 71'
