@@ -154,7 +154,7 @@ index 8f305a4eaf..641237041f 100755
  	   brotli libev c-ares cunit nghttp2 curl \
  	   pcre libssh2 community/http-parser community/libgit2 \
 -	   libxml2 llvm10 community/rust \
-+	   libxml2 llvm11 community/rust \
++	   libxml2 pax-utils llvm11 community/rust \
  	   $KERNEL_PKG ; do
  
 -	EXTRADEPENDS_TARGET="$EXTRADEPENDS_TARGET" \
@@ -176,10 +176,21 @@ index 8f305a4eaf..641237041f 100755
  		# After build-base, that alone is sufficient dependency in the target
  		EXTRADEPENDS_TARGET="busybox $PKG"
 diff --git a/main/linux-lts/APKBUILD b/main/linux-lts/APKBUILD
-index 159476ab..5190ddc6 100644
+index b58d970f24..3762cf5092 100644
 --- a/main/linux-lts/APKBUILD
 +++ b/main/linux-lts/APKBUILD
-@@ -13,11 +13,11 @@ url="https://www.kernel.org"
+@@ -1,8 +1,9 @@
+ # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
++set -x
+ 
+ _flavor=lts
+ pkgname=linux-${_flavor}
+-pkgver=5.10.33
++pkgver=5.10.32
+ case $pkgver in
+ 	*.*.*)	_kernver=${pkgver%.*};;
+ 	*.*) _kernver=$pkgver;;
+@@ -13,11 +14,11 @@
  depends="mkinitfs"
  _depends_dev="perl gmp-dev elfutils-dev bash flex bison"
  makedepends="$_depends_dev sed installkernel bc linux-headers linux-firmware-any openssl-dev
@@ -193,7 +204,7 @@ index 159476ab..5190ddc6 100644
  	0002-powerpc-config-defang-gcc-check-for-stack-protector-.patch
  
  	0007-pci-hotplug-declare-IDT-bridge-as-hotpluggabl-bridge.patch
-@@ -31,12 +31,15 @@ source="https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/linux-$_kernver
+@@ -31,12 +32,15 @@
  	config-lts.ppc64le
  	config-lts.s390x
  	config-lts.mips64
@@ -209,13 +220,18 @@ index 159476ab..5190ddc6 100644
  	"
  subpackages="$pkgname-dev:_dev:$CBUILD_ARCH"
  _flavors=
-@@ -67,11 +70,25 @@ arm*) _carch="arm" ;;
+@@ -67,16 +71,25 @@
  mips*) _carch="mips" ;;
  ppc*) _carch="powerpc" ;;
  s390*) _carch="s390" ;;
 +riscv64*) _carch="riscv" ;;
  esac
  
+-# secfixes:
+-#   5.10.4-r0:
+-#     - CVE-2020-29568
+-#     - CVE-2020-29569
+-
  prepare() {
  	local _patch_failed=
 +
@@ -235,18 +251,94 @@ index 159476ab..5190ddc6 100644
  	if [ "$_kernver" != "$pkgver" ]; then
  		msg "Applying patch-$pkgver.xz"
  		unxz -c < "$srcdir"/patch-$pkgver.xz | patch -p1 -N
-@@ -225,7 +242,9 @@ _dev() {
- 		"$subpkgdir"/lib/modules/${_abi_release}/build
+@@ -140,24 +153,23 @@
+ 	cd "$srcdir"/build-$_buildflavor.$CARCH
+ 	# modules_install seems to regenerate a defect Modules.symvers on s390x. Work
+ 	# around it by backing it up and restore it after modules_install
+-	cp Module.symvers Module.symvers.backup
+-
+ 	mkdir -p "$_outdir"/boot "$_outdir"/lib/modules
++	if [ -f Module.symvers ]; then
++		cp Module.symvers Module.symvers.backup
++		local _install
++		case "$CARCH" in
++			arm*|aarch64) _install="zinstall dtbs_install";;
++			*) _install=install;;
++		esac
+ 
+-	local _install
+-	case "$CARCH" in
+-		arm*|aarch64) _install="zinstall dtbs_install";;
+-		*) _install=install;;
+-	esac
++		make -j16 modules_install $_install \
++			ARCH="$_carch" \
++			INSTALL_MOD_PATH="$_outdir" \
++			INSTALL_PATH="$_outdir"/boot \
++			INSTALL_DTBS_PATH="$_outdir/boot/dtbs-$_buildflavor"
+ 
+-	make -j1 modules_install $_install \
+-		ARCH="$_carch" \
+-		INSTALL_MOD_PATH="$_outdir" \
+-		INSTALL_PATH="$_outdir"/boot \
+-		INSTALL_DTBS_PATH="$_outdir/boot/dtbs-$_buildflavor"
+-
+-	cp Module.symvers.backup Module.symvers
+-
++		cp Module.symvers.backup Module.symvers
++	fi
+ 	rm -f "$_outdir"/lib/modules/${_abi_release}/build \
+ 		"$_outdir"/lib/modules/${_abi_release}/source
+ 	rm -rf "$_outdir"/lib/firmware
+@@ -178,6 +190,11 @@
+ 	_package virt "$subpkgdir"
  }
  
--sha512sums="95bc137d0cf9148da6a9d1f1a878698dc27b40f68e22c597544010a6c591ce1b256f083489d3ff45ff77753289b535135590194d88ef9f007d0ddab3d74de70e  linux-5.10.tar.xz
++# subflavors install in $subpkgdir
++small() {
++	_package small "$subpkgdir"
++}
++
+ _dev() {
+ 	local _flavor=$(echo $subpkgname | sed -E 's/(^linux-|-dev$)//g')
+ 	local _abi_release=${pkgver}-${pkgrel}-$_flavor
+@@ -200,7 +217,7 @@
+ 	echo "-$pkgrel-$_flavor" > "$dir"/localversion-alpine
+ 
+ 	make -j1 -C "$srcdir"/linux-$_kernver O="$dir" ARCH="$_carch" \
+-		syncconfig prepare modules_prepare scripts
++		syncconfig prepare modules_prepare scripts || :
+ 
+ 	# remove the stuff that points to real sources. we want 3rd party
+ 	# modules to believe this is the soruces
+@@ -222,16 +239,19 @@
+ 	find $(find arch -name include -type d -print) -type f \
+ 		| cpio -pdm "$dir"
+ 
+-	install -Dm644 "$srcdir"/build-$_flavor.$CARCH/Module.symvers \
+-		"$dir"/Module.symvers
+-
+ 	mkdir -p "$subpkgdir"/lib/modules/${_abi_release}
+-	ln -sf /usr/src/linux-headers-${_abi_release} \
+-		"$subpkgdir"/lib/modules/${_abi_release}/build
++	if [ -f "$srcdir/build-$_flavor.$CARCH/Module.symvers" ]; then
++		install -Dm644 "$srcdir"/build-$_flavor.$CARCH/Module.symvers \
++			"$dir"/Module.symvers
++
++		ln -sf /usr/src/linux-headers-${_abi_release} \
++			"$subpkgdir"/lib/modules/${_abi_release}/build
++	fi
+ }
+ 
+-sha512sums="
+-95bc137d0cf9148da6a9d1f1a878698dc27b40f68e22c597544010a6c591ce1b256f083489d3ff45ff77753289b535135590194d88ef9f007d0ddab3d74de70e  linux-5.10.tar.xz
 +# 95bc137d0cf9148da6a9d1f1a878698dc27b40f68e22c597544010a6c591ce1b256f083489d3ff45ff77753289b535135590194d88ef9f007d0ddab3d74de70e  linux-5.10.tar.xz
 +
 +sha512sums="fb31bc5ec6339bd807557c025bc5906c9c0026fc886a120c505825ce9a6f574e895e211ddb002b676523e4eb26ef907b183f36ed2cdf214c978f01092ea6232e  Fedora
  d19365fe94431008768c96a2c88955652f70b6df6677457ee55ee95246a64fdd2c6fed9b3bef37c29075178294a7fc91f148ead636382530ebfa822be4ad8c2f  0002-powerpc-config-defang-gcc-check-for-stack-protector-.patch
  ca5aafac37e0b5f3fcbaf801e12f98beb58ffaf1d8c88f76caff22b059831869b4094e7fdcb6d6860422d6b2d036e072caff460e1feb84bd04d10740ad56265b  0007-pci-hotplug-declare-IDT-bridge-as-hotpluggabl-bridge.patch
  cbe85cf34e8420c91d2276c2d2aa0ab5023af68e57a1fa613f073f16a76766c67f585eda71c28f232bd0625e0dc8275a9eddc95f49409205dc0dbcc28c9fac1c  0008-pci-spr2803-quirk-to-fix-class-ID.patch
-@@ -237,9 +256,14 @@ f370f92e35a8815229e52eec5a5e9c4d15ab01c8e7afa13e9672b6b1d1e0eaeb1379347fe92ae172
+@@ -243,10 +263,14 @@
  46b44a0dc3ceb85f081bc04bacfab12f9e5e701eeeff89281af8123a2061afb4012194c9d5c5365c1391c95bdcdc12e641436458000c6b145024072e676c9eec  config-lts.ppc64le
  b0aa02a11f6f8d88b83d8a615d0fa182e8033bc1543e94099030dd777d9930876ab1b3b4ffee60cf4efda92860a9755f939226c5b5bec69317a47284866dea55  config-lts.s390x
  06148ae8d49127dd17a3b5cbe8e09bb4e3b95a85a9b372d6a2753a59c1c9caf5639dce865f3bab36da58c8fdcebe52483d7b0c785fdf15e3b71d6fc59c61c6c6  config-lts.mips64
@@ -256,9 +348,11 @@ index 159476ab..5190ddc6 100644
  a795ab637ba2d84da8f1475bbac4600b59370c277b788fd58b3b28cb3dccf3d3d19b0d5196d915ccfb46c95a2ee20b4626401ee3ee05a54ee17c59bef963142e  config-virt.ppc64le
  00aef9f7f596be069eba7b5c3ed23d2b057a35d8c9d3b0d54f562a3460302583164baade001f971c9deb16fd8b7bdd36bdc1e7aa0a1fbed75dc55a1f3e3e8e4f  config-virt.x86
  bf8bf531cc6fd1d2d80eda1129b67bd28a7f04c7e893d6ef4d52dcd5f9bcc9b9e712efe205f0f6b2d32a8a23e19670e9498a636e6dc4e9b6f920e1ee253582b7  config-virt.x86_64
+-d88f951c1d2d2128a52a6797219e721425e83f19cee67ab32633b8ea2e5ab5578d9b8c61f749a4423cbd2fb6e2313f41ef8d754d51fc648245ea821f17ad11f3  patch-5.10.33.xz
+-"
 +682ad387e32718e64d6bff782161bd56f8af0f22d76c156a5fcfb7674949b4d7f3dc6e28d74de36d2ab804666b12db5e2a219fbb6b179d224b422833d3e93972  config-virt.riscv64
 +78e4fdb688369268b2cf5f9f3a798d565f5747ab1669682e07d0360926d79e50077e02a43ec3afbcc50838e0eadf4501c84b223ed28b7451b414554d4fcbac81  config-small.riscv64
- 2fa2457c4030e988b5f21fe18dff0c4388d54f53b5d64431ada02bbc491908e9a1edb99e8c2ecd42c1945518eb8b4a8928c961a81ccc502c0a5e9945de27d7de  patch-5.10.32.xz"
++2fa2457c4030e988b5f21fe18dff0c4388d54f53b5d64431ada02bbc491908e9a1edb99e8c2ecd42c1945518eb8b4a8928c961a81ccc502c0a5e9945de27d7de  patch-5.10.32.xz"
 +
 +
 diff --git a/main/linux-lts/config-lts.riscv64 b/main/linux-lts/config-lts.riscv64
