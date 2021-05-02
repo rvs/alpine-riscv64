@@ -8,6 +8,7 @@ RUN printf "export JOBS=$(getconf _NPROCESSORS_ONLN)\nexport MAKEFLAGS=-j$(getco
 RUN adduser -G abuild -D builder
 RUN su builder -c 'git config --global user.email "builder@projecteve.dev" && git config --global user.name "Project EVE"'
 RUN su builder -c 'abuild-keygen -a -n'
+RUN su builder -c 'mkdir /home/builder/packages'
 RUN cp /home/builder/.abuild/*.pub /etc/apk/keys
 
 RUN su builder -c 'git clone --depth 1 https://git.alpinelinux.org/aports $APORTS'
@@ -20,7 +21,6 @@ RUN mkdir -p /rootfs/etc/apk/keys
 RUN cp /etc/apk/keys/* /home/builder/.abuild/*.rsa.pub /rootfs/etc/apk/keys
 RUN cp /etc/passwd* /etc/shadow* /etc/group* /rootfs/etc/
 RUN printf "/home/builder/packages/main\n/home/builder/packages/community\n" > /rootfs/etc/apk/repositories
-RUN mkdir /home/builder/packages
 RUN tar -C / -cf - home/builder | tar -C /rootfs -xf -
 RUN rm -rf /home/builder/packages && ln -s /rootfs/home/builder/packages /home/builder/packages
 
