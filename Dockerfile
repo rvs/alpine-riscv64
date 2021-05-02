@@ -22,7 +22,7 @@ RUN cp /etc/passwd* /etc/shadow* /etc/group* /rootfs/etc/
 RUN printf "/home/builder/packages/main\n/home/builder/packages/community\n" > /rootfs/etc/apk/repositories
 RUN mkdir /home/builder/packages
 RUN tar -C / -cf - home/builder | tar -C /rootfs -xf -
-RUN rm /home/builder/packages && ln -s /rootfs/home/builder/packages /home/builder/packages
+RUN rm -rf /home/builder/packages && ln -s /rootfs/home/builder/packages /home/builder/packages
 
 # we generate the following set of "steps" to shorten the time
 # to fix the issues if the build fails mid point
