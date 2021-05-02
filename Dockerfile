@@ -13,7 +13,7 @@ RUN cp /home/builder/.abuild/*.pub /etc/apk/keys
 RUN su builder -c 'git clone --depth 1 https://git.alpinelinux.org/aports $APORTS'
 
 COPY aports.patch /tmp/
-RUN su builder -c 'cd /aports && patch -p1 < /tmp/aports.patch'
+RUN su builder -c "cd $APORTS && patch -p1 < /tmp/aports.patch"
 
 # before we run the build - lets setup our future rootfs
 RUN mkdir -p /rootfs/etc/apk/keys
