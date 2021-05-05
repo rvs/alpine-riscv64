@@ -11,10 +11,7 @@ RUN su builder -c 'abuild-keygen -a -n'
 RUN su builder -c 'mkdir /home/builder/packages'
 RUN cp /home/builder/.abuild/*.pub /etc/apk/keys
 
-RUN su builder -c 'git clone --depth 1 https://git.alpinelinux.org/aports $APORTS'
-
-COPY aports.patch /tmp/
-RUN su builder -c "cd $APORTS && patch -p1 < /tmp/aports.patch"
+RUN su builder -c 'git clone --depth 1 https://github.com/rvs/aports.git $APORTS'
 
 # before we run the build - lets setup our future rootfs
 RUN mkdir -p /rootfs/etc/apk/keys
@@ -42,6 +39,19 @@ RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 60
 RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 65'
 RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 70'
 RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 75'
+
+# FIXME: strictly speaking this shouldn't be needed
+RUN apk add chrpath
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 80'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 85'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 90'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 95'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 100'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 110'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 120'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 130'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 140'
+RUN busybox su builder -c 'cd $APORTS && sh -x ./scripts/bootstrap.sh riscv64 150'
 
 WORKDIR /
 
