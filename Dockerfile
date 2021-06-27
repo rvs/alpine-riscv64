@@ -11,7 +11,8 @@ RUN su builder -c 'abuild-keygen -a -n'
 RUN su builder -c 'mkdir /home/builder/packages'
 RUN cp /home/builder/.abuild/*.pub /etc/apk/keys
 
-RUN su builder -c 'git clone --depth 1 https://github.com/rvs/aports.git $APORTS'
+# RUN su builder -c 'git clone --depth 1 https://github.com/rvs/aports.git $APORTS'
+RUN su builder -c 'git clone --depth 1 https://git.alpinelinux.org/aports/ $APORTS'
 
 # before we run the build - lets setup our future rootfs
 RUN mkdir -p /rootfs/etc/apk/keys
